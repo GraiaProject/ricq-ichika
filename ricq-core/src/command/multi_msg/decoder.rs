@@ -2,7 +2,7 @@ use std::{collections::HashMap, io::Write};
 
 use bytes::{Buf, Bytes};
 
-use crate::{msg::MessageChain, pb, RQError, RQResult};
+use crate::{pb, RQError, RQResult};
 use flate2::write::GzDecoder;
 use prost::Message;
 
@@ -51,7 +51,7 @@ impl super::super::super::Engine {
             pb::msg::PbMultiMsgTransmit::decode(Bytes::from(decoder.finish()?))?
                 .pb_item_list
                 .into_iter()
-                .map(|item| (item.file_name.clone().unwrap_or_default(), item))
+                .map(|item| (item.file_name().to_owned(), item))
                 .collect(),
         )
     }
@@ -78,38 +78,33 @@ impl super::super::super::Engine {
             } else {
                 sender_name = head.from_nick().to_string();
             }
-            let elements = MessageChain::from(
-                msg.body
-                    .unwrap_or_default()
-                    .rich_text
-                    .unwrap_or_default()
-                    .elems,
-            );
-            for elem in elements.0.iter() {
-                match elem {
-                    crate::pb::msg::elem::Elem::RichMsg(rich) => {
-                        if rich.service_id() == 35 {
-                            let rich = crate::msg::elem::RichMsg::from(rich.clone());
-                            let res_id = find_res_id(&rich.template1)
-                                .ok_or_else(|| RQError::EmptyField("m_resid"))?;
-                            let sub_nodes = self.decode_forward_message(res_id, items)?;
-                            nodes.push(ForwardMessage::Forward(ForwardNode {
-                                sender_id: head.from_uin(),
-                                time: head.msg_time(),
-                                sender_name,
-                                nodes: sub_nodes,
-                            }));
-                            continue 'iter_main;
-                        }
-                    }
-                    _ => {}
+            let elements = msg
+                .body
+                .unwrap_or_default()
+                .rich_text
+                .unwrap_or_default()
+                .elems;
+            for elem in elements.iter().filter_map(|e| e.elem.as_ref()) {
+                if let crate::pb::msg::elem::Elem::RichMsg(ref elem) = elem
+                && elem.service_id() == 35 {
+                    let rich = crate::msg::elem::RichMsg::from(elem.clone());
+                    let res_id = find_res_id(&rich.template1)
+                        .ok_or_else(|| RQError::EmptyField("m_resid"))?;
+                    let sub_nodes = self.decode_forward_message(res_id, items)?;
+                    nodes.push(ForwardMessage::Forward(ForwardNode {
+                        sender_id: head.from_uin(),
+                        time: head.msg_time(),
+                        sender_name,
+                        nodes: sub_nodes,
+                    }));
+                    continue 'iter_main;
                 }
             }
             nodes.push(ForwardMessage::Message(MessageNode {
                 sender_id: head.from_uin(),
                 time: head.msg_time(),
                 sender_name,
-                elements,
+                elements: elements.into(),
             }))
         }
         Ok(nodes)
