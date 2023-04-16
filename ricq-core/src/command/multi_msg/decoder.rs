@@ -8,9 +8,9 @@ use prost::Message;
 
 use super::{ForwardMessage, ForwardNode, MessageNode};
 
-fn find_res_id(template: &str) -> Option<&str> {
+fn find_file_name(template: &str) -> Option<&str> {
     template
-        .rsplit_once("m_resid=\"")
+        .rsplit_once("m_fileName=\"")
         .and_then(|v| v.1.split_once("\""))
         .map(|v| v.0)
 }
@@ -58,13 +58,13 @@ impl super::super::super::Engine {
 
     pub fn decode_forward_message(
         &self,
-        name: &str,
+        file_name: &str,
         items: &HashMap<String, pb::msg::PbMultiMsgItem>,
     ) -> RQResult<Vec<ForwardMessage>> {
-        let item = match items.get(name) {
+        let item = match items.get(file_name) {
             Some(item) => item.clone(),
             None => Err(RQError::Other(format!(
-                "{name} does not exist in MultiMsgItem map"
+                "{file_name} does not exist in MultiMsgItem map"
             )))?,
         };
         let msgs = item.buffer.unwrap_or_default().msg;
@@ -88,9 +88,9 @@ impl super::super::super::Engine {
                 if let crate::pb::msg::elem::Elem::RichMsg(ref elem) = elem
                 && elem.service_id() == 35 {
                     let rich = crate::msg::elem::RichMsg::from(elem.clone());
-                    let res_id = find_res_id(&rich.template1)
-                        .ok_or_else(|| RQError::EmptyField("m_resid"))?;
-                    let sub_nodes = self.decode_forward_message(res_id, items)?;
+                    let file_name = find_file_name(&rich.template1)
+                        .ok_or_else(|| RQError::EmptyField("m_fileName"))?;
+                    let sub_nodes = self.decode_forward_message(file_name, items)?;
                     nodes.push(ForwardMessage::Forward(ForwardNode {
                         sender_id: head.from_uin(),
                         time: head.msg_time(),

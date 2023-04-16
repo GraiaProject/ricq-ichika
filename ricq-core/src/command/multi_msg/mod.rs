@@ -7,6 +7,7 @@ use crate::pb;
 pub mod builder;
 pub mod decoder;
 
+#[derive(Clone, Debug)]
 pub enum ForwardMessage {
     Message(MessageNode),
     Forward(ForwardNode),
@@ -26,6 +27,7 @@ pub fn gen_forward_preview(messages: &[ForwardMessage]) -> String {
     ret
 }
 
+#[derive(Clone, Debug)]
 pub struct MessageNode {
     pub sender_id: i64,
     pub time: i32,
@@ -39,6 +41,7 @@ impl From<MessageNode> for ForwardMessage {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct ForwardNode {
     pub sender_id: i64,
     pub time: i32,
