@@ -23,6 +23,13 @@ pub fn t1(uin: u32, ip: &[u8]) -> Bytes {
     buf.freeze()
 }
 
+pub fn t112(uin: i64) -> Bytes {
+    let mut buf = BytesMut::new();
+    buf.put_u16(0x112);
+    buf.write_bytes_short(uin.to_string().as_bytes());
+    buf.freeze()
+}
+
 pub fn t1b(
     micro: u32,
     version: u32,
@@ -773,6 +780,26 @@ pub fn t542() -> Bytes {
     let mut buf = BytesMut::new();
     buf.put_u16(0x542);
     buf.write_bytes_short(&[0x4A, 0x02, 0x60, 0x01]);
+    buf.freeze()
+}
+
+pub fn t544(provider: &Option<Box<dyn crate::wtlogin::T544Provider>>, cmd: &str) -> Bytes {
+    let mut buf = BytesMut::new();
+    buf.put_u16(0x544);
+    match provider.as_ref() {
+        Some(t544_provider) => {
+            buf.put_slice(&t544_provider.t544(cmd.into()));
+        }
+        None => {
+            buf.put_slice(&[0x0C, 0x03]);
+            buf.put_slice(&rand::random::<[u8; 6]>());
+            buf.put_slice(&[0; 2]);
+            buf.put_slice(&rand::random::<[u8; 10]>());
+            buf.put_slice(&[0; 4]);
+            buf.put_slice(&rand::random::<[u8; 4]>());
+            buf.put_slice(&[0; 4]);
+        }
+    }
     buf.freeze()
 }
 

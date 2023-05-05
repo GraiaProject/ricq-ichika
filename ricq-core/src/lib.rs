@@ -11,6 +11,7 @@ use protocol::device::Device;
 use protocol::oicq;
 use protocol::transport::Transport;
 use protocol::version::Version;
+use wtlogin::ExLoginProvider;
 
 pub use crate::token::Token;
 
@@ -44,11 +45,11 @@ pub struct Engine {
     pub friend_seq: AtomicI32,
     pub group_data_trans_seq: AtomicI32,
     pub highway_apply_up_seq: AtomicI32,
+    pub ex_provider: wtlogin::ExLoginProvider,
 }
 
 impl Engine {
-    pub fn new(device: Device, version: Version) -> Self 
-    {
+    pub fn new(device: Device, version: Version) -> Self {
         Self {
             uin: AtomicI64::new(0),
             transport: Transport::new(device, version),
@@ -58,6 +59,7 @@ impl Engine {
             friend_seq: AtomicI32::new(rand::thread_rng().gen_range(0..20000)),
             group_data_trans_seq: AtomicI32::new(rand::thread_rng().gen_range(0..20000)),
             highway_apply_up_seq: AtomicI32::new(rand::thread_rng().gen_range(0..20000)),
+            ex_provider: ExLoginProvider::default(),
         }
     }
 

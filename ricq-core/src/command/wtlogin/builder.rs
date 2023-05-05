@@ -344,7 +344,7 @@ impl super::super::super::Engine {
             w.put_slice(&t401(&transport.sig.g));
             w.put_slice(&t198());
             if transport.version.sso_version > 12 {
-                // w.put_slice(&t544("810_7"));
+                w.put_slice(&t544(&self.ex_provider.t544, "810_7"));
             }
             w
         });
@@ -379,7 +379,7 @@ impl super::super::super::Engine {
                 w.put_slice(&t547(&transport.sig.t547));
             }
             if transport.version.sso_version > 12 {
-                // w.put_slice(&t544("810_7"));
+                w.put_slice(&t544(&self.ex_provider.t544, "810_7"));
             }
             w
         });
@@ -513,7 +513,7 @@ impl super::super::super::Engine {
         let req = self.build_oicq_request_packet(self.uin(), 0x810, &{
             let mut w = BytesMut::new();
             w.put_u16(11);
-            w.put_u16(17);
+            w.put_u16(19);
 
             w.put_slice(&t100(
                 transport.version.sso_version,
@@ -543,6 +543,7 @@ impl super::super::super::Engine {
                 &transport.device.brand,
                 &h,
             ));
+            w.put_slice(&t112(self.uin()));
             w.put_slice(&t143(&transport.sig.d2));
             w.put_slice(&t142(transport.version.apk_id));
             w.put_slice(&t154(seq));
@@ -577,7 +578,7 @@ impl super::super::super::Engine {
                 "mail.qq.com",
                 "mma.qq.com",
             ]));
-            // w.put_slice(&t202(self.device_info.wifi_bssid.as_bytes(), self.device_info.wifi_ssid.as_bytes()));
+            w.put_slice(&t202(&transport.device.wifi_bssid, &transport.device.wifi_ssid));
             w
         });
         Packet {
@@ -687,7 +688,7 @@ impl super::super::super::Engine {
             w.put_slice(&t521(0));
             w.put_slice(&t525(&t536(&[0x01, 0x00])));
             if transport.version.sso_version > 12 {
-                // w.put_slice(&t544("810_9"));
+                w.put_slice(&t544(&self.ex_provider.t544, "810_9"));
             }
             // w.put_slice(&t545(&transport.device.qimei)); // QIMEI
             w.put_slice(&t548());

@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::sync::atomic::Ordering;
 
 use bytes::{BufMut, Bytes, BytesMut};
@@ -110,4 +111,13 @@ fn calc_t547(transport: &mut Transport, t546: &Bytes) {
     if transport.sig.t547.len() == 0 {
         transport.sig.t547 = t546_challenge(t546.clone());
     }
+}
+
+pub trait T544Provider: Debug + Send + Sync {
+    fn t544(&self, command: String) -> Bytes;
+}
+
+#[derive(Default, Debug)]
+pub struct ExLoginProvider {
+    pub t544: Option<Box<dyn T544Provider>>,
 }
