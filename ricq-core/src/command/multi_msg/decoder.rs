@@ -85,6 +85,7 @@ impl super::super::super::Engine {
                 .unwrap_or_default()
                 .elems;
             for elem in elements.iter().filter_map(|e| e.elem.as_ref()) {
+                // TODO: LightApp forward resolve
                 if let crate::pb::msg::elem::Elem::RichMsg(ref elem) = elem
                 && elem.service_id() == 35 {
                     let rich = crate::msg::elem::RichMsg::from(elem.clone());

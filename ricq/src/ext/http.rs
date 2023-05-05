@@ -20,8 +20,6 @@ pub(crate) fn make_headers(
 pub enum HttpMethod {
     GET,
     POST,
-    PUT,
-    DELETE,
 }
 
 #[async_trait::async_trait]
@@ -48,8 +46,6 @@ mod http_reqwest {
             match value {
                 HttpMethod::GET => ReqMethod::GET,
                 HttpMethod::POST => ReqMethod::POST,
-                HttpMethod::PUT => ReqMethod::PUT,
-                HttpMethod::DELETE => ReqMethod::DELETE,
             }
         }
     }
