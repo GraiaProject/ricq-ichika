@@ -15,6 +15,7 @@ use ricq_core::structs::Status;
 use ricq_core::structs::SummaryCardInfo;
 use ricq_core::structs::{ForwardMessage, MessageReceipt};
 
+use crate::ext::http::{make_headers, HttpMethod};
 use crate::jce::SvcDevLoginInfo;
 use crate::{RQError, RQResult};
 
@@ -369,7 +370,11 @@ impl super::Client {
             .decode_multi_msg_apply_down_resp(resp.body)
     }
 
-    pub async fn download_msgs(&self, res_id: String) -> RQResult<Vec<ForwardMessage>> {
+    pub async fn download_msgs(
+        &self,
+        res_id: String,
+        http_client: &mut impl crate::ext::http::HttpClient,
+    ) -> RQResult<Vec<ForwardMessage>> {
         let mut resp = self.multi_msg_apply_down(res_id).await?;
         if resp.result != 0 {
             return Err(RQError::Other(format!(
@@ -377,7 +382,7 @@ impl super::Client {
                 resp.result
             )));
         }
-        let prefix=if let Some(pb::multimsg::ExternMsg { channel_type }) = resp.msg_extern_info && channel_type == 2 {
+        let prefix = if let Some(pb::multimsg::ExternMsg { channel_type }) = resp.msg_extern_info && channel_type == 2 {
             "https://ssl.htdata.qq.com".into()
         } else {
             let addr = SocketAddr::from(RQAddr(resp.down_ip.pop().ok_or(RQError::EmptyField("down_ip"))?,resp.down_port.pop().ok_or(RQError::EmptyField("down_port"))? as u16));
@@ -388,12 +393,17 @@ impl super::Client {
             prefix,
             String::from_utf8_lossy(&resp.thumb_down_para)
         );
-        let _encrypt_key = resp.msg_key;
-        // TODO get data and decrypt
-        // TODO decoder -> LongRspBody
-        // TODO uncompress
-        // TODO link message, convert to Vec<ForwardMessage>
-        todo!()
+        let data = http_client
+            .make_request(
+                HttpMethod::GET,
+                _url,
+                &make_headers(self.version().await.sort_version_name, ""),
+                Bytes::new(),
+            )
+            .await?;
+
+        let item_map = self.engine.read().await.decode_multi_msg_transmit(data, &resp.msg_key)?;
+        self.engine.read().await.decode_forward_message("MultiMsg", &item_map)
     }
 
     /// 发送消息
