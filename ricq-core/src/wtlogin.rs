@@ -59,6 +59,10 @@ impl super::Engine {
         if let Some(v) = resp.t402 {
             set_t402(&mut self.transport, v)
         }
+
+        if let Some(v) = resp.t546 {
+            calc_t547(&mut self.transport, &v)
+        }
     }
 
     fn process_need_captcha(&mut self, resp: &LoginNeedCaptcha) {
@@ -72,6 +76,10 @@ impl super::Engine {
         if let Some(v) = &resp.t402 {
             set_t402(&mut self.transport, v.clone())
         }
+
+        if let Some(v) = &resp.t546 {
+            calc_t547(&mut self.transport, &v)
+        }
     }
     fn process_device_lock_login(&mut self, resp: LoginDeviceLockLogin) {
         self.transport.sig.rand_seed.option_set(resp.rand_seed);
@@ -80,8 +88,13 @@ impl super::Engine {
         if let Some(v) = resp.t402 {
             set_t402(&mut self.transport, v)
         }
+
+        if let Some(v) = resp.t546 {
+            calc_t547(&mut self.transport, &v)
+        }
     }
 }
+
 fn set_t402(transport: &mut Transport, t402: Bytes) {
     transport.sig.dpwd = random_string(16).into();
     transport.sig.t402 = t402;
@@ -90,4 +103,11 @@ fn set_t402(transport: &mut Transport, t402: Bytes) {
     v.put_slice(&transport.sig.dpwd);
     v.put_slice(&transport.sig.t402);
     transport.sig.g = Bytes::from(md5::compute(&v).to_vec())
+}
+
+fn calc_t547(transport: &mut Transport, t546: &Bytes) {
+    use crate::command::wtlogin::tlv_writer::t546_challenge;
+    if transport.sig.t547.len() == 0 {
+        transport.sig.t547 = t546_challenge(t546.clone());
+    }
 }

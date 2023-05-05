@@ -343,6 +343,9 @@ impl super::super::super::Engine {
             w.put_slice(&t17c(code));
             w.put_slice(&t401(&transport.sig.g));
             w.put_slice(&t198());
+            if transport.version.sso_version > 12 {
+                // w.put_slice(&t544("810_7"));
+            }
             w
         });
         Packet {
@@ -372,6 +375,12 @@ impl super::super::super::Engine {
                 transport.version.misc_bitmap,
                 transport.version.sub_sig_map,
             ));
+            if transport.sig.t547.len() != 0 {
+                w.put_slice(&t547(&transport.sig.t547));
+            }
+            if transport.version.sso_version > 12 {
+                // w.put_slice(&t544("810_7"));
+            }
             w
         });
         Packet {
@@ -677,7 +686,12 @@ impl super::super::super::Engine {
             w.put_slice(&t516());
             w.put_slice(&t521(0));
             w.put_slice(&t525(&t536(&[0x01, 0x00])));
-
+            if transport.version.sso_version > 12 {
+                // w.put_slice(&t544("810_9"));
+            }
+            // w.put_slice(&t545(&transport.device.qimei)); // QIMEI
+            w.put_slice(&t548());
+            w.put_slice(&t542());
             w.freeze()
         });
         Packet {

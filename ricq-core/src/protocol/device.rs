@@ -1,4 +1,4 @@
-use bytes::Bytes;
+use bytes::{Bytes, BufMut};
 use rand::distributions::DistString;
 use rand::{distributions::Alphanumeric, Rng, RngCore};
 use serde::{Deserialize, Serialize};
@@ -100,6 +100,15 @@ impl Device {
                 .as_bytes()
                 .to_vec(),
         )
+    }
+
+    pub fn guid(&self) -> Bytes {
+        let mut buf = bytes::BytesMut::new();
+        buf.put(self.imei.as_bytes());
+        buf.put(self.mac_address.as_bytes());
+
+        let digest = md5::compute(buf).0;
+        Bytes::from(digest.to_vec())
     }
 }
 

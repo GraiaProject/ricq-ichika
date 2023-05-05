@@ -21,6 +21,7 @@ prost = { version = "0.9", features = ["std"], default-features = false }
 prost-types = "0.9"
 rand = "0.8"
 serde = { version = "1", features = ["derive"] }
+sha2 = "0.10.6"
 thiserror = "1"
 
 [build-dependencies]

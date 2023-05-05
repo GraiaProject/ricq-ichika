@@ -65,6 +65,7 @@ pub struct LoginSuccess {
     pub ksid: Option<Bytes>,
     pub account_info: Option<T11A>,
     pub t512: Option<T512>,
+    pub t546: Option<Bytes>,
     // 不知道有没有 t402
     pub t402: Option<Bytes>,
     pub wt_session_ticket_key: Option<Bytes>,
@@ -93,6 +94,7 @@ pub struct LoginNeedCaptcha {
 pub struct LoginDeviceLocked {
     pub t104: Option<Bytes>,
     pub t174: Option<Bytes>,
+    pub t546: Option<Bytes>,
     pub t402: Option<Bytes>,
     pub sms_phone: Option<String>,
     pub verify_url: Option<String>,
@@ -103,6 +105,7 @@ pub struct LoginDeviceLocked {
 #[derive(Debug, Clone)]
 pub struct LoginDeviceLockLogin {
     pub t104: Option<Bytes>,
+    pub t546: Option<Bytes>,
     pub t402: Option<Bytes>,
     pub rand_seed: Option<Bytes>,
 }
@@ -132,6 +135,7 @@ impl LoginResponse {
                     ksid: t119.remove(&0x108),
                     account_info: t119.remove(&0x11a).map(read_t11a),
                     t512: t119.remove(&0x512).map(read_t512),
+                    t546: tlv_map.remove(&0x546),
                     t402: tlv_map.remove(&0x402),
                     wt_session_ticket_key: t119.remove(&0x134),
                     srm_token: t119.remove(&0x16a),
@@ -187,12 +191,14 @@ impl LoginResponse {
                     rand_seed: tlv_map.remove(&0x403),
                     t104: tlv_map.remove(&0x104),
                     t174,
+                    t546: tlv_map.remove(&0x546),
                     t402: tlv_map.remove(&0x402),
                 })
             }
             162 => LoginResponse::TooManySMSRequest,
             204 => LoginResponse::DeviceLockLogin(LoginDeviceLockLogin {
                 t104: tlv_map.remove(&0x104),
+                t546: tlv_map.remove(&0x546),
                 t402: tlv_map.remove(&0x402),
                 rand_seed: tlv_map.remove(&0x403),
             }),

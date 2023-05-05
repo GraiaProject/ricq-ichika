@@ -44,7 +44,7 @@ async fn main() {
     let mut seed = StdRng::seed_from_u64(uin as u64);
     let device = Device::random_with_rng(&mut seed);
 
-    let client = Arc::new(Client::new(device, Protocol::IPad.into(), DefaultHandler));
+    let client = Arc::new(Client::new(device, Protocol::AndroidPad.into(), DefaultHandler));
     let handle = tokio::spawn({
         let client = client.clone();
         // 连接所有服务器，哪个最快用哪个，可以使用 TcpStream::connect 代替
