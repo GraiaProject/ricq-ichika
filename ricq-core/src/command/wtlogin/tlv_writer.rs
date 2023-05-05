@@ -23,6 +23,13 @@ pub fn t1(uin: u32, ip: &[u8]) -> Bytes {
     buf.freeze()
 }
 
+pub fn t112(uin: i64) -> Bytes {
+    let mut buf = BytesMut::new();
+    buf.put_u16(0x112);
+    buf.write_bytes_short(uin.to_string().as_bytes());
+    buf.freeze()
+}
+
 pub fn t1b(
     micro: u32,
     version: u32,
@@ -769,11 +776,119 @@ pub fn t536(login_extra_data: &[u8]) -> Bytes {
     buf.freeze()
 }
 
+pub fn t542() -> Bytes {
+    let mut buf = BytesMut::new();
+    buf.put_u16(0x542);
+    buf.write_bytes_short(&[0x4A, 0x02, 0x60, 0x01]);
+    buf.freeze()
+}
+
+pub fn t544(provider: &Option<Box<dyn crate::wtlogin::T544Provider>>, cmd: &str) -> Bytes {
+    let mut buf = BytesMut::new();
+    buf.put_u16(0x544);
+    match provider.as_ref() {
+        Some(t544_provider) => {
+            buf.put_slice(&t544_provider.t544(cmd.into()));
+        }
+        None => {
+            buf.put_slice(&[0x0C, 0x03]);
+            buf.put_slice(&rand::random::<[u8; 6]>());
+            buf.put_slice(&[0; 2]);
+            buf.put_slice(&rand::random::<[u8; 10]>());
+            buf.put_slice(&[0; 4]);
+            buf.put_slice(&rand::random::<[u8; 4]>());
+            buf.put_slice(&[0; 4]);
+        }
+    }
+    buf.freeze()
+}
+
+pub fn t545(q_imei: &[u8]) -> Bytes {
+    let mut buf = BytesMut::new();
+    buf.put_u16(0x545);
+    buf.write_bytes_short(&{
+        let mut w = BytesMut::new();
+        w.put_slice(q_imei);
+        w.freeze()
+    });
+    buf.freeze()
+}
+
+pub fn t547(data: &[u8]) -> Bytes {
+    let mut buf = BytesMut::new();
+    buf.put_u16(0x547);
+    buf.write_bytes_short(&{
+        let mut w = BytesMut::new();
+        w.put_slice(data);
+        w.freeze()
+    });
+    buf.freeze()
+}
+
+pub fn t548() -> Bytes {
+    let mut buf = BytesMut::new();
+    buf.put_u16(0x548);
+    // Skip PoW
+    buf.freeze()
+}
+
 pub fn guid_flag() -> u32 {
     let mut flag: u32 = 0;
     flag |= 1 << 24 & 0xFF000000;
     flag |= 0; // flag |= 0 << 8 & 0xFF00;
     flag
+}
+
+fn sha256(src: &[u8]) -> Bytes {
+    use sha2::{Digest, Sha256};
+    let res = Sha256::digest(src);
+    let mut buf = BytesMut::new();
+    buf.put_slice(&res);
+    buf.freeze()
+}
+
+pub fn t546_challenge(mut src: Bytes) -> Bytes {
+    use crate::binary::BinaryReader;
+    use bytes::Buf;
+    let mut res: BytesMut = BytesMut::new();
+    res.put(src.clone());
+    res[3] = 0x01;
+    let (_, typ, _, ok, _, _, src, dst, _) = (
+        src.get_u8(),
+        src.get_u8(),
+        src.get_u8(),
+        src.get_u8(),
+        src.get_u16(),
+        src.get_u16(),
+        src.read_bytes_short(),
+        src.read_bytes_short(),
+        src.read_bytes_short(),
+    );
+    let mut tmp: BytesMut = BytesMut::with_capacity(128);
+    let mut cnt: u32 = 0;
+    tmp.put(src);
+    if ok != 0 || typ != 2 || dst.len() != 32 {
+        return Bytes::new();
+    }
+    let start_time = std::time::SystemTime::now();
+    let mut curr_hash: Bytes = sha256(&tmp);
+    while curr_hash != dst {
+        for i in (0..tmp.len()).rev() {
+            if tmp[i] == 0xFF {
+                tmp[i] = 0;
+            } else {
+                tmp[i] += 1;
+                break;
+            }
+        }
+        curr_hash = sha256(&tmp);
+        cnt += 1;
+    }
+    let elp_ms = start_time.elapsed().unwrap().as_millis() as u32;
+    res.write_bytes_short(&tmp);
+    res.put_u32(elp_ms);
+    res.put_u32(cnt);
+    res.freeze()
 }
 
 #[cfg(test)]
