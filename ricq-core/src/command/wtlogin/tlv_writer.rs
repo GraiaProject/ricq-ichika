@@ -785,20 +785,9 @@ pub fn t542() -> Bytes {
 
 pub fn t544(provider: &Option<Box<dyn crate::wtlogin::T544Provider>>, cmd: &str) -> Bytes {
     let mut buf = BytesMut::new();
-    buf.put_u16(0x544);
-    match provider.as_ref() {
-        Some(t544_provider) => {
-            buf.put_slice(&t544_provider.t544(cmd.into()));
-        }
-        None => {
-            buf.put_slice(&[0x0C, 0x03]);
-            buf.put_slice(&rand::random::<[u8; 6]>());
-            buf.put_slice(&[0; 2]);
-            buf.put_slice(&rand::random::<[u8; 10]>());
-            buf.put_slice(&[0; 4]);
-            buf.put_slice(&rand::random::<[u8; 4]>());
-            buf.put_slice(&[0; 4]);
-        }
+    if let Some(t544_provider) = provider.as_ref() {
+        buf.put_u16(0x544);
+        buf.put_slice(&t544_provider.t544(cmd.into()));
     }
     buf.freeze()
 }
