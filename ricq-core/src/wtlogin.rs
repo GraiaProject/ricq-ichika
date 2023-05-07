@@ -121,3 +121,20 @@ pub trait T544Provider: Debug + Send + Sync {
 pub struct ExLoginProvider {
     pub t544: Option<Box<dyn T544Provider>>,
 }
+
+#[derive(Default, Debug)]
+pub struct RandomT544Provider;
+
+impl T544Provider for RandomT544Provider {
+    fn t544(&self, _: String) -> Bytes {
+        let mut buf = BytesMut::new();
+        buf.put_slice(&[0x0C, 0x03]);
+        buf.put_slice(&rand::random::<[u8; 6]>());
+        buf.put_slice(&[0; 2]);
+        buf.put_slice(&rand::random::<[u8; 10]>());
+        buf.put_slice(&[0; 4]);
+        buf.put_slice(&rand::random::<[u8; 4]>());
+        buf.put_slice(&[0; 4]);
+        buf.freeze()
+    }
+}
