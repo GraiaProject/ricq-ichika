@@ -102,7 +102,7 @@ impl super::super::super::Engine {
             });
             w.put_u8(0);
             w.put_u16(req_body.len() as u16);
-            w.put_u32(self.transport.version.app_id);
+            w.put_u32(16);
             w.put_u32(114); // const role
             w.write_hex("000000");
             w.put_slice(&req_body);
