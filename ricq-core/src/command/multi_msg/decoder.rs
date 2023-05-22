@@ -8,11 +8,17 @@ use prost::Message;
 
 use super::{ForwardMessage, ForwardNode, MessageNode};
 
-fn find_file_name(template: &str) -> Option<&str> {
-    template
-        .rsplit_once("m_fileName=\"")
-        .and_then(|v| v.1.split_once("\""))
-        .map(|v| v.0)
+pub fn find_file_name(source: &str) -> Option<&str> {
+    if let Some(xml_style) = source.split_once("m_fileName=\"") {
+        return xml_style.1.split_once("\"").map(|(file_name, _)| file_name);
+    }
+    if let Some(json_style) = source.rsplit_once(r#"\"filename\":\""#) {
+        return json_style
+            .1
+            .split_once(r#"\""#)
+            .map(|(file_name, _)| file_name);
+    }
+    None
 }
 
 impl super::super::super::Engine {
@@ -85,12 +91,21 @@ impl super::super::super::Engine {
                 .unwrap_or_default()
                 .elems;
             for elem in elements.iter().filter_map(|e| e.elem.as_ref()) {
-                // TODO: LightApp forward resolve
+                let mut file_src: Option<String> = None;
                 if let crate::pb::msg::elem::Elem::RichMsg(ref elem) = elem
                 && elem.service_id() == 35 {
                     let rich = crate::msg::elem::RichMsg::from(elem.clone());
-                    let file_name = find_file_name(&rich.template1)
-                        .ok_or_else(|| RQError::EmptyField("m_fileName"))?;
+                    file_src = Some(rich.template1);
+                }
+                else if let crate::pb::msg::elem::Elem::LightApp(ref elem) = elem
+                && let light_app = crate::msg::elem::LightApp::from(elem.clone())
+                && light_app.content.contains(r#"{"app":"com.tencent.multimsg""#) {
+                    let light_app = crate::msg::elem::LightApp::from(elem.clone());
+                    file_src = Some(light_app.content);
+                }
+                if let Some(file_src) = file_src {
+                    let file_name = find_file_name(&file_src)
+                        .ok_or_else(|| RQError::EmptyField("file_name"))?;
                     let sub_nodes = self.decode_forward_message(file_name, items)?;
                     nodes.push(ForwardMessage::Forward(ForwardNode {
                         sender_id: head.from_uin(),
@@ -119,5 +134,33 @@ impl super::super::super::Engine {
             .multimsg_applyup_rsp
             .pop()
             .ok_or(RQError::EmptyField("multimsg_applyup_rsp"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn find_filename_xml() {
+        let content = r#"<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+        <msg serviceID="35" templateID="1" action="viewMultiMsg" brief="testqGnJ1R..."
+            m_resid="(size=1)DBD2AB20196EEB631C95DEF40E20C709"
+            m_fileName="160023" sourceMsgId="0" url=""
+            flag="3" adverSign="0" multiMsgFlag="1">
+            <item layout="1">
+                <title>testqGnJ1R...</title>
+                <hr hidden="false" style="0"/>
+                <summary>点击查看完整消息</summary>
+            </item>
+            <source name="聊天记录" icon="" action="" appid="-1"/>
+        </msg>"#;
+
+        assert_eq!(super::find_file_name(content), Some("160023"));
+    }
+
+    #[test]
+    fn find_filename_json() {
+        let content = r#"{"app":"com.tencent.multimsg","desc":"[聊天记录]","view":"contact","ver":"0.0.0.5","prompt":"[聊天记录]","meta":{"detail":{"news":[{"text":" 轩:别太荒谬[图片][图片][图片][图片][图片] "},{"text":" 斩首的夜:？？？ "},{"text":" 斩首的夜:[图片] "},{"text":" 相生万物:[图片] "}],"uniseq":"7220266786072788669","resid":"HEioyxxucuHjhqd0kWWm0T7EKvui6gxFGg4cLFGbzWghQkhk2Kn1SsISdQ\/1SmXm","summary":" 查看转发消息  ","source":" 群聊的聊天记录 "}},"config":{"round":1,"forward":1,"autosize":1,"type":"normal","width":300},"extra":"{\"tsum\":4,\"filename\":\"7220266786072788669\"}"}"#;
+
+        assert_eq!(super::find_file_name(content), Some("7220266786072788669"));
     }
 }
